@@ -66,7 +66,7 @@ const ChatRoom: React.FC = () => {
       const messageData: Message = {
         text: message,
         sender: nickname,
-        id: socket.id + Date.now(), // Unique ID for message
+        id: (socket?.id || 'local') + '-' + Date.now(), // Unique ID for message
       };
       socket.emit('send_message', { ...messageData, roomId });
       setMessages((prevMessages) => [...prevMessages, messageData]);
