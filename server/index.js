@@ -19,6 +19,13 @@ app.get('/', (req, res) => {
   res.send('<h1>Chat Server is running</h1>');
 });
 
+const crypto = require('crypto');
+
+app.get('/create-room', (req, res) => {
+  const roomId = crypto.randomBytes(4).toString('hex');
+  res.json({ roomId });
+});
+
 io.on('connection', (socket) => {
   console.log('a user connected:', socket.id);
 
