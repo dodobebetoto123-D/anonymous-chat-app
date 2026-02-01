@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface Message {
   text: string;
@@ -16,10 +17,11 @@ const ChatRoom: React.FC = () => {
   const [nickname, setNickname] = useState('');
   const [isNicknameSet, setIsNicknameSet] = useState(false);
   const [copySuccess, setCopySuccess] = useState('');
+  const [showQR, setShowQR] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000'; // Make sure this matches your backend server URL
+  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:4000';
 
   const handleCopy = () => {
     const inviteLink = window.location.href;
@@ -27,7 +29,7 @@ const ChatRoom: React.FC = () => {
       setCopySuccess('Copied!');
       setTimeout(() => setCopySuccess(''), 2000);
     }, () => {
-      setCopySuccess('Failed to copy');
+      setCopySuccess('Failed');
       setTimeout(() => setCopySuccess(''), 2000);
     });
   };
@@ -66,7 +68,7 @@ const ChatRoom: React.FC = () => {
       const messageData: Message = {
         text: message,
         sender: nickname,
-        id: (socket?.id || 'local') + '-' + Date.now(), // Unique ID for message
+        id: (socket?.id || 'local') + '-' + Date.now(),
       };
       socket.emit('send_message', { ...messageData, roomId });
       setMessages((prevMessages) => [...prevMessages, messageData]);
@@ -81,6 +83,23 @@ const ChatRoom: React.FC = () => {
     }
   };
 
+  const QRModal = () => (
+    <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content text-center">
+          <div className="modal-header">
+            <h5 className="modal-title">Invite with QR Code</h5>
+            <button type="button" className="btn-close" onClick={() => setShowQR(false)}></button>
+          </div>
+          <div className="modal-body p-4">
+            <QRCodeCanvas value={window.location.href} size={256} />
+            <p className="mt-3">Scan this code to join the room.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (!isNicknameSet) {
     return (
       <div className="container d-flex flex-column align-items-center justify-content-center vh-100">
@@ -94,9 +113,7 @@ const ChatRoom: React.FC = () => {
             onChange={(e) => setNickname(e.target.value)}
             required
           />
-          <button type="submit" className="btn btn-success">
-            Join
-          </button>
+          <button type="submit" className="btn btn-success">Join</button>
         </form>
       </div>
     );
@@ -104,13 +121,15 @@ const ChatRoom: React.FC = () => {
 
   return (
     <div className="container mt-4">
-       <div className="d-flex justify-content-between align-items-center mb-3">
+      {showQR && <QRModal />}
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <Link to="/" className="btn btn-secondary">Leave Room</Link>
         <h2 className="text-center mb-0">Room: {roomId}</h2>
         <div>
           <button className="btn btn-info me-2" onClick={handleCopy}>
-            {copySuccess ? copySuccess : 'Copy Invite Link'}
+            {copySuccess ? copySuccess : 'Copy Link'}
           </button>
+          <button className="btn btn-success" onClick={() => setShowQR(true)}>Show QR</button>
         </div>
       </div>
       <div className="card mb-3 chat-window">
@@ -136,9 +155,7 @@ const ChatRoom: React.FC = () => {
           required
           disabled={!socket}
         />
-        <button type="submit" className="btn btn-primary" disabled={!socket || !message.trim()}>
-          Send
-        </button>
+        <button type="submit" className="btn btn-primary" disabled={!socket || !message.trim()}>Send</button>
       </form>
       <p className="mt-3 text-muted text-center">Your nickname: <strong>{nickname}</strong></p>
     </div>
